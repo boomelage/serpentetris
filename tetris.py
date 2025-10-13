@@ -209,9 +209,14 @@ def main_menu(screen):
 
     while True:
         screen.fill(BLACK)
-        title_surface = font.render("PyTetris", True, GREEN)
+        title_surface = font.render("Serpentetris", True, GREEN)
         title_rect = title_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 - 100))
         screen.blit(title_surface, title_rect)
+
+        tiny_font = pygame.font.SysFont("Courier New", 20)
+        byline_surface = tiny_font.render("by boomelage", True, GREEN)
+        byline_rect = byline_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 - 70))
+        screen.blit(byline_surface, byline_rect)
 
         level_surface = small_font.render(f"Starting Level: {selected_level}", True, GREEN)
         level_rect = level_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2))
@@ -390,13 +395,13 @@ def main():
             text_surface = font.render("Paused", True, GREEN)
             text_rect = text_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2))
             screen.blit(text_surface, text_rect)
-            restart_surface = small_font.render("Press M to return to menu", True, GREEN)
-            restart_rect = restart_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 + 50))
-            screen.blit(restart_surface, restart_rect)
-
             restart_game_surface = small_font.render("Press R to Restart", True, GREEN)
-            restart_game_rect = restart_game_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 + 80))
+            restart_game_rect = restart_game_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 + 50))
             screen.blit(restart_game_surface, restart_game_rect)
+
+            restart_surface = small_font.render("Press M to return to menu", True, GREEN)
+            restart_rect = restart_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 + 80))
+            screen.blit(restart_surface, restart_rect)
             pygame.display.flip()
 
             for event in pygame.event.get():
