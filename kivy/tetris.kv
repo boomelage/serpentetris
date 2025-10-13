@@ -1,0 +1,188 @@
+# game_ui.kv
+# Kivy layout file defining the UI for the Tetris game.
+
+<GameScreen>:
+    game_state: root.game_state
+    score_label: score_label_id
+    level_label: level_label_id
+    game_grid: game_grid_id
+    next_piece_preview: next_piece_preview_id
+    pause_label: pause_label_id
+    game_over_label: game_over_label_id
+    game_over_restart_label: game_over_restart_label_id
+    game_over_menu_label: game_over_menu_label_id
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        # Top section: Score, Level, Next Piece Preview
+        BoxLayout:
+            size_hint_y: 0.2
+            orientation: 'horizontal'
+            spacing: 10
+
+            Label:
+                id: score_label_id
+                text: "Score: 0"
+                font_size: '20sp'
+                color: (0, 1, 0, 1) # Green
+                halign: 'left'
+                valign: 'top'
+                text_size: self.size
+
+            Label:
+                id: level_label_id
+                text: "Level: 1"
+                font_size: '20sp'
+                color: (0, 1, 0, 1) # Green
+                halign: 'right'
+                valign: 'top'
+                text_size: self.size
+
+            NextPiecePreview:
+                id: next_piece_preview_id
+                game_state: root.game_state
+                size_hint_x: 0.3 # Allocate some space for the preview
+
+        # Middle section: Game Grid
+        RelativeLayout:
+            size_hint_y: 0.6
+
+            GameGrid:
+                id: game_grid_id
+                game_state: root.game_state
+                size_hint: None, None
+                # Center the game grid horizontally
+                width: min(self.parent.width, self.parent.height * (10/20))
+                height: self.width * 2
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                canvas.before:
+                    Color:
+                        rgb: 0, 0, 0 # Black background for the game grid
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+
+            # Pause Label
+            Label:
+                id: pause_label_id
+                text: "PAUSED"
+                font_size: '48sp'
+                color: (0, 1, 0, 1) # Green
+                center_x: self.parent.center_x
+                center_y: self.parent.center_y
+                opacity: 0 # Hidden by default
+
+            # Game Over Labels
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint: None, None
+                size: self.minimum_size
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                opacity: 0 # Hidden by default
+                id: game_over_container
+
+                Label:
+                    id: game_over_label_id
+                    text: "GAME OVER"
+                    font_size: '48sp'
+                    color: (0, 1, 0, 1) # Green
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    opacity: 0 # Hidden by default
+
+                Label:
+                    id: game_over_restart_label_id
+                    text: "Tap to Restart"
+                    font_size: '24sp'
+                    color: (0, 1, 0, 1) # Green
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    opacity: 0 # Hidden by default
+
+                Label:
+                    id: game_over_menu_label_id
+                    text: "Two-finger tap for Menu"
+                    font_size: '24sp'
+                    color: (0, 1, 0, 1) # Green
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    opacity: 0 # Hidden by default
+
+
+        # Bottom section: Control Buttons
+        GridLayout:
+            size_hint_y: 0.15
+            cols: 2 # Two columns for the two clusters
+            spacing: 5
+            padding: 5
+
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                padding: 5
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    spacing: 5
+
+                    Button:
+                        text: '←'
+                        font_size: '24sp'
+                        font_name: 'DejaVuSans'
+                        on_press: root.game_state.move_tetromino(-1, 0)
+                    Button:
+                        text: '→'
+                        font_size: '24sp'
+                        font_name: 'DejaVuSans'
+                        on_press: root.game_state.move_tetromino(1, 0)
+                Button:
+                    text: '↓'
+                    font_size: '24sp'
+                    font_name: 'DejaVuSans'
+                    on_press: root.game_state.move_tetromino(0, 1)
+            
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                padding: 5
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    spacing: 5
+
+                    Button:
+                        text: '⟳' # Rotate symbol
+                        font_size: '24sp'
+                        font_name: 'DejaVuSans'
+                        on_press: root.game_state.try_rotate()
+                    Button:
+                        text: '⇩' # Hard drop symbol
+                        font_size: '24sp'
+                        font_name: 'DejaVuSans'
+                        on_press: root.game_state.drop_tetromino()
+                Button:
+                    text: '⇄' # Switch symbol
+                    font_size: '24sp'
+                    font_name: 'DejaVuSans'
+                    on_press: root.game_state.switch_tetromino()
+
+        # Pause/Menu/Restart buttons (separate for clarity, could be combined)
+        BoxLayout:
+            size_hint_y: 0.08
+            orientation: 'horizontal'
+            spacing: 5
+            padding: 5
+
+            Button:
+                text: '||' # Pause symbol
+                font_size: '18sp'
+                font_name: 'DejaVuSans'
+                on_press: root.on_pause_button()
+            Button:
+                text: '↻' # Restart symbol
+                font_size: '18sp'
+                font_name: 'DejaVuSans'
+                on_press: root.on_restart_button()
