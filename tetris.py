@@ -183,23 +183,34 @@ def draw_level(surface, level):
     text_surface = font.render(f"Level: {level}", True, GREEN)
     surface.blit(text_surface, (WIDTH * BLOCK_SIZE + 10, 40))
 
-def draw_tetromino_preview(current_tetromino, next_tetromino, screen, block_size, offset):
-    # Draw the current tetromino preview
+def draw_text(surface, text, x, y, size=18, color=GREEN):
+    font = pygame.font.SysFont("Courier New", size)
+    text_surface = font.render(text, True, color)
+    surface.blit(text_surface, (x, y))
+
+def draw_next_tetromino_preview(next_tetromino, screen, block_size, offset):
+    # Draw the next tetromino preview
     preview_offset_x = offset[0]
     preview_offset_y = offset[1]
     
-    for y, row in enumerate(current_tetromino):
-        for x, value in enumerate(row):
-            if value == 1:
-                pygame.draw.rect(screen, GREEN, (preview_offset_x + x * block_size, preview_offset_y + y * block_size, block_size, block_size))
-    
-    # Adjust the Y offset for the next tetromino to draw it below the current one with some spacing
-    preview_offset_y += 5 * block_size  # Adjust this value based on your preference for spacing
-
     for y, row in enumerate(next_tetromino):
         for x, value in enumerate(row):
             if value == 1:
                 pygame.draw.rect(screen, GREEN, (preview_offset_x + x * block_size, preview_offset_y + y * block_size, block_size, block_size))
+
+def draw_stashed_piece(stashed_piece_data, screen, block_size, offset):
+    if stashed_piece_data is not None:
+        stashed_shape = stashed_piece_data['shape']
+        stashed_rotation = stashed_piece_data['rotation']
+        stashed_tetromino = tetrominoes[stashed_shape][stashed_rotation]
+
+        preview_offset_x = offset[0]
+        preview_offset_y = offset[1]
+        
+        for y, row in enumerate(stashed_tetromino):
+            for x, value in enumerate(row):
+                if value == 1:
+                    pygame.draw.rect(screen, GREEN, (preview_offset_x + x * block_size, preview_offset_y + y * block_size, block_size, block_size))
 
 def main_menu(screen):
     font = pygame.font.SysFont("Courier New", 48)
@@ -250,7 +261,7 @@ def draw_controls(surface):
         "←/↓/→: Move",
         "↑: Rotate",
         "Space: Drop",
-        "Z: Switch",
+        "Z: Stash",
         "P: Pause",
     ]
     for i, control in enumerate(controls):
@@ -301,7 +312,7 @@ def show_game_over_screen(screen, final_score):
 preview_offset = (WIDTH * BLOCK_SIZE + 10, 10)
 
 def reset_game():
-    global board, level, score, lines_cleared_count, current_move_delay, falling_tetromino_queue, falling_tetromino_shape, falling_tetromino_rotation, falling_tetromino, tetromino_pos, has_changed, game_over
+    global board, level, score, lines_cleared_count, current_move_delay, falling_tetromino_queue, falling_tetromino_shape, falling_tetromino_rotation, falling_tetromino, tetromino_pos, has_changed, game_over, stashed_piece
     board = [[0] * WIDTH for _ in range(HEIGHT)]
     level = 1
     score = 0
@@ -309,6 +320,7 @@ def reset_game():
     current_move_delay = MOVE_DELAY
     game_over = False
     falling_tetromino_queue = generate_tetromino_queue()
+    stashed_piece = None
     spawn_new_tetromino()
 
 def spawn_new_tetromino():
@@ -333,12 +345,13 @@ def spawn_new_tetromino():
     has_changed = False # Reset change tracker for the new block
 
 def main():
-    global board, level, score, lines_cleared_count, current_move_delay, falling_tetromino_queue, falling_tetromino_shape, falling_tetromino_rotation, falling_tetromino, tetromino_pos, has_changed, game_over, return_to_menu, p_key_pressed, restart_game
+    global board, level, score, lines_cleared_count, current_move_delay, falling_tetromino_queue, falling_tetromino_shape, falling_tetromino_rotation, falling_tetromino, tetromino_pos, has_changed, game_over, return_to_menu, p_key_pressed, restart_game, stashed_piece
     pygame.key.set_repeat(100, 50)
     return_to_menu = False
     p_key_pressed = False
     return_to_menu_from_pause = False
     restart_game = False
+    stashed_piece = None
     reset_game()
     starting_level = main_menu(screen)
     level = starting_level
@@ -487,23 +500,27 @@ def main():
                     elif event.key == pygame.K_p:
                         p_key_pressed = False
                     elif event.key == pygame.K_z:
-                        if not has_changed:  # Change block if not already changed
-                            if len(falling_tetromino_queue) > 1:
-                                current_shape = falling_tetromino_shape
-                                next_shape = falling_tetromino_queue[1]
-                                falling_tetromino_queue[0] = next_shape
-                                falling_tetromino_queue[1] = current_shape
-                                falling_tetromino_shape = next_shape
-                                falling_tetromino_rotation = 0
+                        if not has_changed:  # Only allow one swap per piece
+                            if stashed_piece is None:
+                                stashed_piece = {'shape': falling_tetromino_shape, 'rotation': falling_tetromino_rotation}
+                                spawn_new_tetromino()
+                            else:
+                                # Swap current piece with stashed piece
+                                temp_shape = falling_tetromino_shape
+                                temp_rotation = falling_tetromino_rotation
+
+                                falling_tetromino_shape = stashed_piece['shape']
+                                falling_tetromino_rotation = stashed_piece['rotation']
                                 falling_tetromino = tetrominoes[falling_tetromino_shape][falling_tetromino_rotation]
+
+                                stashed_piece = {'shape': temp_shape, 'rotation': temp_rotation}
 
                                 # Recalculate tetromino_pos after swap
                                 if falling_tetromino_shape == 'I':
                                     tetromino_pos = [WIDTH // 2 - len(falling_tetromino[0]) // 2 - 1, 0]
                                 else:
                                     tetromino_pos = [WIDTH // 2 - len(falling_tetromino[0]) // 2, 0]
-
-                                has_changed = True
+                            has_changed = True
                     elif event.key == pygame.K_SPACE:
                         initial_y = tetromino_pos[1] # Store initial y position
                         tetromino_pos = drop_tetromino(falling_tetromino, tetromino_pos)
@@ -534,14 +551,11 @@ def main():
                             current_move_delay = max(100, MOVE_DELAY - (level - 1) * 50)
 
                         spawn_new_tetromino()
-            if len(falling_tetromino_queue) > 1:
-                next_tetromino_shape = falling_tetromino_queue[1]
+            next_tetromino = [] # Initialize next_tetromino as empty
+            if len(falling_tetromino_queue) > 1: # Check if there's a next tetromino
+                next_tetromino_shape = falling_tetromino_queue[1] # Get the second item in the queue (the next one)
                 next_tetromino = tetrominoes[next_tetromino_shape][0]
-            else:
-                # If there is no next tetromino in the queue, generate a new queue
-                new_queue = generate_tetromino_queue()
-                next_tetromino_shape = new_queue[0]
-                next_tetromino = tetrominoes[next_tetromino_shape][0]
+            # If len is 0 or 1, next_tetromino remains empty, which is fine for drawing nothing.
 
 
             screen.fill(BLACK)
@@ -551,7 +565,15 @@ def main():
             draw_tetromino(falling_tetromino, tetromino_pos)
             draw_score(screen, score)
             draw_level(screen, level)
-            draw_tetromino_preview(falling_tetromino, next_tetromino, screen, BLOCK_SIZE, (preview_offset[0], preview_offset[1] + 60))
+            
+            # Draw next tetromino preview
+            draw_text(screen, "Next:", WIDTH * BLOCK_SIZE + 10, 100)
+            draw_next_tetromino_preview(next_tetromino, screen, BLOCK_SIZE, (WIDTH * BLOCK_SIZE + 10, 120))
+            
+            # Draw stashed piece
+            draw_text(screen, "Stashed:", WIDTH * BLOCK_SIZE + 10, 200)
+            draw_stashed_piece(stashed_piece, screen, BLOCK_SIZE, (WIDTH * BLOCK_SIZE + 10, 220)) # Adjust Y offset as needed
+            
             draw_controls(screen)
             pygame.display.flip()
             clock.tick(FPS)

@@ -92,6 +92,7 @@ class GameState:
         self.game_over = False
         self.paused = False
         self.last_move_time = 0 # To track automatic downward movement
+        self.stashed_tetromino_shape = None # New attribute for stashed piece
 
         self.all_tetromino_types = list(tetrominoes.keys())
         self.generate_tetromino_queue()
@@ -114,10 +115,12 @@ class GameState:
         self.game_over = False
         self.paused = False
         self.last_move_time = 0
+        self.stashed_tetromino_shape = None # Reset stashed piece
 
     def spawn_new_tetromino(self):
         """Spawns a new tetromino and replenishes the queue if needed."""
-        self.falling_tetromino_queue.pop(0)
+        self.falling_tetromino_queue.pop(0) # Always pop the current piece from the queue
+        
         # Replenish the queue if it's getting low
         if len(self.falling_tetromino_queue) <= 7: # If 7 or fewer items left, generate more
             new_tetrominoes = [random.choice(self.all_tetromino_types) for _ in range(7)] # Add 7 new random tetrominoes
@@ -277,55 +280,67 @@ class GameState:
 
     def get_next_tetromino_data(self):
         """Returns the data for the next tetromino in the queue."""
-        if len(self.falling_tetromino_queue) > 1:
+        if len(self.falling_tetromino_queue) > 1: # Check if there's a next tetromino
             next_tetromino_shape = self.falling_tetromino_queue[1]
             return tetrominoes[next_tetromino_shape][0]
-        return None # Should not happen with proper queue management
+        return None # Or handle this case as appropriate, e.g., return a default empty shape
 
-    def get_second_next_tetromino_data(self):
-        """Returns the data for the second next tetromino in the queue."""
-        if len(self.falling_tetromino_queue) > 2:
-            second_next_tetromino_shape = self.falling_tetromino_queue[2]
-            return tetrominoes[second_next_tetromino_shape][0]
+    def get_stashed_tetromino_data(self):
+        """Returns the data for the stashed tetromino."""
+        if self.stashed_tetromino_shape:
+            return tetrominoes[self.stashed_tetromino_shape][0]
         return None
 
     def switch_tetromino(self):
-        """Switches the current falling tetromino with the next one in the queue."""
+        """Switches the current falling tetromino with the stashed one."""
         if self.game_over or self.paused or self.has_changed:
             return
 
-        if len(self.falling_tetromino_queue) > 1:
-            current_shape = self.falling_tetromino_shape
-            next_shape = self.falling_tetromino_queue[1]
+        current_falling_shape = self.falling_tetromino_shape
+        
+        if self.stashed_tetromino_shape is None:
+            # Stash current piece, spawn new from queue
+            self.stashed_tetromino_shape = current_falling_shape
+            self.falling_tetromino_queue.pop(0) # Remove the piece that was just stashed from the queue
+            self.falling_tetromino_shape = self.falling_tetromino_queue[0]
+        else:
+            # Swap current with stashed
+            self.falling_tetromino_shape = self.stashed_tetromino_shape
+            self.stashed_tetromino_shape = current_falling_shape
+        
+        self.falling_tetromino_rotation = 0
+        self.falling_tetromino = tetrominoes[self.falling_tetromino_shape][self.falling_tetromino_rotation]
 
-            # Swap in the queue
-            self.falling_tetromino_queue[0] = next_shape
-            self.falling_tetromino_queue[1] = current_shape
+        # Recalculate tetromino_pos after swap
+        if self.falling_tetromino_shape == 'I':
+            self.tetromino_pos = [WIDTH // 2 - len(self.falling_tetromino[0]) // 2 - 1, 0]
+        else:
+            self.tetromino_pos = [WIDTH // 2 - len(self.falling_tetromino[0]) // 2, 0]
+
+        # Check for immediate collision after swap, if so, revert
+        if self.check_collision(self.falling_tetromino, self.tetromino_pos):
+            # Revert the swap if it causes a collision
+            # This part needs careful consideration for reverting the stash state
+            # For simplicity, if collision, we just don't allow the swap
+            # A more robust solution might involve trying to move the piece up
+            # or finding a valid position, but for now, we'll disallow.
+            self.falling_tetromino_shape = current_falling_shape # Revert to original
+            self.falling_tetromino = tetrominoes[current_falling_shape][0] # Revert to original rotation
+            # Revert stashed piece
+            if self.stashed_tetromino_shape == current_falling_shape: # If it was just stashed
+                self.stashed_tetromino_shape = None
+                self.falling_tetromino_queue.insert(0, current_falling_shape) # Put it back in queue
+            else: # If it was swapped from stash
+                temp_stashed = self.stashed_tetromino_shape
+                self.stashed_tetromino_shape = current_falling_shape
+                self.falling_tetromino_shape = temp_stashed
             
-            self.falling_tetromino_shape = next_shape
-            self.falling_tetromino_rotation = 0
-            self.falling_tetromino = tetrominoes[self.falling_tetromino_shape][self.falling_tetromino_rotation]
-
-            # Recalculate tetromino_pos after swap
-            if self.falling_tetromino_shape == 'I':
-                self.tetromino_pos = [WIDTH // 2 - len(self.falling_tetromino[0]) // 2 - 1, 0]
+            # Revert position
+            if current_falling_shape == 'I':
+                self.tetromino_pos = [WIDTH // 2 - len(tetrominoes[current_falling_shape][0][0]) // 2 - 1, 0]
             else:
-                self.tetromino_pos = [WIDTH // 2 - len(self.falling_tetromino[0]) // 2, 0]
-
-            # Check for immediate collision after swap, if so, revert
-            if self.check_collision(self.falling_tetromino, self.tetromino_pos):
-                # Revert the swap if it causes a collision
-                self.falling_tetromino_queue[0] = current_shape
-                self.falling_tetromino_queue[1] = next_shape
-                self.falling_tetromino_shape = current_shape
-                self.falling_tetromino = tetrominoes[current_shape][0] # Revert to original rotation
-                # Revert position
-                if current_shape == 'I':
-                    self.tetromino_pos = [WIDTH // 2 - len(tetrominoes[current_shape][0][0]) // 2 - 1, 0]
-                else:
-                    self.tetromino_pos = [WIDTH // 2 - len(tetrominoes[current_shape][0][0]) // 2, 0]
-                return False # Swap failed due to collision
-            
-            self.has_changed = True
-            return True
-        return False
+                self.tetromino_pos = [WIDTH // 2 - len(tetrominoes[current_falling_shape][0][0]) // 2, 0]
+            return False # Swap failed due to collision
+        
+        self.has_changed = True
+        return True

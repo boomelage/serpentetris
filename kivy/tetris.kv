@@ -6,7 +6,8 @@
     score_label: score_label_id
     level_label: level_label_id
     game_grid: game_grid_id
-    next_piece_preview: next_piece_preview_id
+    upcoming_piece_preview: upcoming_piece_preview_id
+    stashed_piece_preview: stashed_piece_preview_id
     pause_label: pause_label_id
     game_over_label: game_over_label_id
     game_over_restart_label: game_over_restart_label_id
@@ -17,11 +18,30 @@
         padding: 10
         spacing: 10
 
-        # Top section: Score, Level, Next Piece Preview
+        # Top section: Score, Level, Next Piece Preview, Stashed Piece Preview
         BoxLayout:
             size_hint_y: 0.2
             orientation: 'horizontal'
             spacing: 10
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.3
+                spacing: 5
+
+                Label:
+                    text: "Next:"
+                    font_size: '16sp'
+                    color: (0, 1, 0, 1) # Green
+                    halign: 'center'
+                    valign: 'bottom'
+                    text_size: self.size
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                UpcomingPiecePreview:
+                    id: upcoming_piece_preview_id
+                    game_state: root.game_state
 
             Label:
                 id: score_label_id
@@ -41,10 +61,24 @@
                 valign: 'top'
                 text_size: self.size
 
-            NextPiecePreview:
-                id: next_piece_preview_id
-                game_state: root.game_state
-                size_hint_x: 0.3 # Allocate some space for the preview
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: 0.3
+                spacing: 5
+
+                Label:
+                    text: "Stashed:"
+                    font_size: '16sp'
+                    color: (0, 1, 0, 1) # Green
+                    halign: 'center'
+                    valign: 'bottom'
+                    text_size: self.size
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                StashedPiecePreview:
+                    id: stashed_piece_preview_id
+                    game_state: root.game_state
 
         # Middle section: Game Grid
         RelativeLayout:

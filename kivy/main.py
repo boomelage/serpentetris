@@ -98,7 +98,7 @@ class GameGrid(Widget):
                                            self.y + (HEIGHT - 1 - (self.game_state.tetromino_pos[1] + y_offset)) * self.block_render_size),
                                       size=(self.block_render_size, self.block_render_size))
 
-class NextPiecePreview(Widget):
+class UpcomingPiecePreview(Widget):
     """
     Kivy Widget for displaying the next tetromino in the queue.
     """
@@ -123,7 +123,6 @@ class NextPiecePreview(Widget):
             return
 
         next_tetromino = self.game_state.get_next_tetromino_data()
-        second_next_tetromino = self.game_state.get_second_next_tetromino_data()
 
         if next_tetromino:
             with self.canvas:
@@ -140,15 +139,41 @@ class NextPiecePreview(Widget):
                                            start_y + (max_dim - 1 - y_offset) * self.block_render_size),
                                       size=(self.block_render_size, self.block_render_size))
 
-        if second_next_tetromino:
-            with self.canvas:
-                Color(0, 1, 0, 0.5) # Slightly transparent green for the second next piece
-                max_dim = max(len(second_next_tetromino), max(len(row) for row in second_next_tetromino))
-                start_x = self.x + (self.width - max_dim * self.block_render_size) / 2
-                # Position the second next piece below the first one
-                start_y = self.y + (self.height - max_dim * self.block_render_size) / 2 - (5 * self.block_render_size) # Adjust spacing as needed
+class StashedPiecePreview(Widget):
+    """
+    Kivy Widget for displaying the stashed tetromino.
+    """
+    game_state = ObjectProperty(None)
+    block_render_size = NumericProperty(0)
 
-                for y_offset, row in enumerate(second_next_tetromino):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(size=self.update_block_render_size, pos=self.update_block_render_size)
+
+    def update_block_render_size(self, *args):
+        """Calculates the appropriate block size for the preview."""
+        if self.width > 0 and self.height > 0:
+            self.block_render_size = min(self.width / 4, self.height / 4)
+        self.draw_preview()
+
+    def draw_preview(self):
+        """
+        Draws the stashed tetromino.
+        """
+        self.canvas.clear()
+        if not self.game_state or self.game_state.game_over or self.game_state.paused:
+            return
+
+        stashed_tetromino = self.game_state.get_stashed_tetromino_data()
+
+        if stashed_tetromino:
+            with self.canvas:
+                Color(0, 1, 0, 1) # Green
+                max_dim = max(len(stashed_tetromino), max(len(row) for row in stashed_tetromino))
+                start_x = self.x + (self.width - max_dim * self.block_render_size) / 2
+                start_y = self.y + (self.height - max_dim * self.block_render_size) / 2
+
+                for y_offset, row in enumerate(stashed_tetromino):
                     for x_offset, value in enumerate(row):
                         if value == 1:
                             Rectangle(pos=(start_x + x_offset * self.block_render_size,
@@ -164,7 +189,8 @@ class GameScreen(BoxLayout):
     score_label = ObjectProperty(None)
     level_label = ObjectProperty(None)
     game_grid = ObjectProperty(None)
-    next_piece_preview = ObjectProperty(None)
+    upcoming_piece_preview = ObjectProperty(None)
+    stashed_piece_preview = ObjectProperty(None)
     pause_label = ObjectProperty(None)
     game_over_label = ObjectProperty(None)
     game_over_restart_label = ObjectProperty(None)
@@ -209,7 +235,8 @@ class GameScreen(BoxLayout):
         self.score_label.text = f"Score: {self.game_state.score}"
         self.level_label.text = f"Level: {self.game_state.level}"
         self.game_grid.draw_game()
-        self.next_piece_preview.draw_preview()
+        self.upcoming_piece_preview.draw_preview()
+        self.stashed_piece_preview.draw_preview()
 
     def on_pause_button(self):
         """Toggles the game pause state."""
