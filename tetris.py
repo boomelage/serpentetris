@@ -247,7 +247,7 @@ def main_menu(screen):
 def draw_controls(surface):
     font = pygame.font.SysFont("Courier New", 18)
     controls = [
-        "←/→/↓: Move",
+        "←/↓/→: Move",
         "↑: Rotate",
         "Space: Drop",
         "Z: Switch",
