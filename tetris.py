@@ -257,13 +257,17 @@ def draw_controls(surface):
         text_surface = font.render(control, True, GREEN)
         surface.blit(text_surface, (WIDTH * BLOCK_SIZE + 10, HEIGHT * BLOCK_SIZE - (len(controls) - i) * 20))
 
-def show_game_over_screen(screen):
+def show_game_over_screen(screen, final_score):
     screen.fill(BLACK)  # Clear the screen
     font = pygame.font.SysFont("Courier New", 48)
     small_font = pygame.font.SysFont("Courier New", 24)
     text_surface = font.render("Game Over", True, GREEN)
     text_rect = text_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 - 50))
     screen.blit(text_surface, text_rect)
+
+    score_surface = small_font.render(f"Score: {final_score}", True, GREEN)
+    score_rect = score_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2))
+    screen.blit(score_surface, score_rect)
 
     restart_surface = small_font.render("Press R to restart", True, GREEN)
     restart_rect = restart_surface.get_rect(center=(screen.get_width() / 2, screen.get_height() / 2 + 50))
@@ -303,9 +307,9 @@ def reset_game():
     score = 0
     lines_cleared_count = 0
     current_move_delay = MOVE_DELAY
+    game_over = False
     falling_tetromino_queue = generate_tetromino_queue()
     spawn_new_tetromino()
-    game_over = False
 
 def spawn_new_tetromino():
     global falling_tetromino_queue, falling_tetromino_shape, falling_tetromino_rotation, falling_tetromino, tetromino_pos, has_changed
@@ -369,7 +373,7 @@ def main():
             continue # Continue the main loop with a fresh game
 
         if game_over:
-            show_game_over_screen(screen)
+            show_game_over_screen(screen, score)
             if restart_game:
                 reset_game()
                 level = starting_level # Reset level to starting level
@@ -458,8 +462,6 @@ def main():
                     # Check for game over condition before placing the tetromino
                     if check_collision(falling_tetromino, tetromino_pos):
                         game_over = True  # Set the game over flag
-                        continue # Skip placing the tetromino if game is over
-
                 else:
                     tetromino_pos = new_pos
 
